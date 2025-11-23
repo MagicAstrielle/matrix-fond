@@ -1,0 +1,156 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 <canvas id="matrixCanvas"></canvas>\
+<div id="overlay">\
+  <div id="frame">\
+    <p id="matrixText"></p>\
+  </div>\
+</div>\
+\
+<style>\
+  body, html \{\
+    margin: 0;\
+    padding: 0;\
+    overflow: hidden;\
+    background: black;\
+    font-family: monospace;\
+  \}\
+\
+  #matrixCanvas \{\
+    position: fixed;\
+    top: 0;\
+    left: 0;\
+    z-index: 0;\
+  \}\
+\
+  #overlay \{\
+    position: fixed;\
+    top: 0;\
+    left: 0;\
+    width: 100%;\
+    height: 100%;\
+    z-index: 1;\
+    display: flex;\
+    justify-content: center;\
+    align-items: flex-start;\
+    padding-top: 144px; /* texte \'e0 144px depuis le haut */\
+  \}\
+\
+  #frame \{\
+    background: rgba(0,0,0,0.8);\
+    padding: 20px 40px;\
+    border: 2px solid #00ff00;\
+    border-radius: 12px;\
+    text-align: center;\
+  \}\
+\
+  #matrixText \{\
+    color: #00ff00;\
+    font-size: 28px;\
+    min-height: 40px;\
+  \}\
+</style>\
+\
+<script>\
+const canvas = document.getElementById("matrixCanvas");\
+const ctx = canvas.getContext("2d");\
+let width = canvas.width = window.innerWidth;\
+let height = canvas.height = window.innerHeight;\
+\
+const numbers = ["144","174","285","396","417","432","528","639","741","777","852","888","963","1111","10000"];\
+const fontSize = 16;\
+const columns = Math.floor(width / fontSize);\
+const drops = Array.from(\{length:columns\},()=>Math.floor(Math.random()*height/fontSize));\
+\
+// Solides de Platon corrects\
+const polyhedra = [\
+  // T\'e9tra\'e8dre\
+  \{ vertices:[[1,1,1],[-1,-1,1],[-1,1,-1],[1,-1,-1]], edges:[[0,1],[0,2],[0,3],[1,2],[2,3],[3,1]] \},\
+  // Cube\
+  \{ vertices:[[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],\
+    edges:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]] \},\
+  // Octa\'e8dre\
+  \{ vertices:[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]],\
+    edges:[[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]] \},\
+  // Dod\'e9ca\'e8dre (approximation pour rendu visuel)\
+  \{ vertices:[[0.577,0.577,0.577],[-0.577,0.577,0.577],[0.577,-0.577,0.577],[-0.577,-0.577,0.577],[0.577,0.577,-0.577],[-0.577,0.577,-0.577],[0.577,-0.577,-0.577],[-0.577,-0.577,-0.577],[0,0.850,0.525],[0,0.850,-0.525],[0,-0.850,0.525],[0,-0.850,-0.525]],\
+    edges:[[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7],[8,9],[10,11]] \},\
+  // Icosa\'e8dre (approximation pour rendu visuel)\
+  \{ vertices:[[0,0,1],[0.894,0,0.447],[0.276,0.851,0.447],[-0.724,0.526,0.447],[-0.724,-0.526,0.447],[0.276,-0.851,0.447],[0.724,0.526,-0.447],[-0.276,0.851,-0.447],[-0.894,0,-0.447],[-0.276,-0.851,-0.447],[0.724,-0.526,-0.447],[0,0,-1]],\
+    edges:[[0,1],[0,2],[0,3],[0,4],[0,5],[1,2],[2,3],[3,4],[4,5],[5,1],[6,7],[7,8],[8,9],[9,10],[10,6],[1,6],[2,7],[3,8],[4,9],[5,10],[6,11],[7,11],[8,11],[9,11],[10,11]] \}\
+];\
+\
+// Projection 3D simple\
+function project3D(p,size,angle)\{\
+  const cos=Math.cos(angle), sin=Math.sin(angle);\
+  const x=p[0]*cos - p[2]*sin;\
+  const z=p[0]*sin + p[2]*cos;\
+  const y=p[1];\
+  const scale=size*8;\
+  const persp=1/(z+3);\
+  return [x*scale*persp, y*scale*persp];\
+\}\
+\
+function drawPolyhedron(x,y,size)\{\
+  const poly=polyhedra[Math.floor(Math.random()*polyhedra.length)];\
+  const angle=Math.random()*Math.PI*2;\
+  ctx.strokeStyle="#00ff00";\
+  ctx.lineWidth=1;\
+  ctx.beginPath();\
+  for(const edge of poly.edges)\{\
+    const p1=project3D(poly.vertices[edge[0]],size,angle);\
+    const p2=project3D(poly.vertices[edge[1]],size,angle);\
+    ctx.moveTo(x+p1[0],y+p1[1]);\
+    ctx.lineTo(x+p2[0],y+p2[1]);\
+  \}\
+  ctx.stroke();\
+\}\
+\
+function drawMatrix()\{\
+  ctx.fillStyle="rgba(0,0,0,0.08)";\
+  ctx.fillRect(0,0,width,height);\
+  ctx.fillStyle="#00ff00";\
+  ctx.font=fontSize+"px monospace";\
+\
+  for(let i=0;i<columns;i++)\{\
+    const r=Math.random();\
+    if(r<0.85)\{\
+      const num=numbers[Math.floor(Math.random()*numbers.length)];\
+      ctx.fillText(num,i*fontSize,drops[i]*fontSize);\
+    \} else if(r<0.88)\{\
+      drawPolyhedron(i*fontSize+fontSize/2,drops[i]*fontSize,fontSize/2);\
+    \}\
+\
+    if(drops[i]*fontSize>height && Math.random()>0.975) drops[i]=0;\
+    drops[i]++;\
+  \}\
+\}\
+\
+setInterval(drawMatrix,120);\
+\
+window.addEventListener("resize",()=>\{\
+  width=canvas.width=window.innerWidth;\
+  height=canvas.height=window.innerHeight;\
+\});\
+\
+// Texte progressif\
+const text = "Es-tu pr\'eat.e \'e0 changer ta r\'e9alit\'e9 ?";\
+const matrixText = document.getElementById("matrixText");\
+let index=0;\
+\
+function typeWriter()\{\
+  if(index<text.length)\{\
+    matrixText.innerHTML += text.charAt(index);\
+    index++;\
+    setTimeout(typeWriter,80);\
+  \}\
+\}\
+\
+setTimeout(typeWriter,1000);\
+</script>\
+}
